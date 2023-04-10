@@ -140,7 +140,7 @@ if (count > limit){
 
 //### Command Stepper Motor ###//
 
-  Steering_Rotations = map(SteeringPosition,-2000,2000,800,-800);
+  Steering_Rotations = map(SteeringPosition,-2000,2000,-800,800);
   Steering_Rotations = Steering_Rotations/100;
   
   stepper.setTargetPositionInRevolutions(Steering_Rotations);
