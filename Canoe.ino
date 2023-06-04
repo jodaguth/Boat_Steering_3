@@ -22,7 +22,6 @@ bool modeSelectPin1State = false;
 bool modeSelectPin2State = false;
 
 // Initialize objects
-Encoder encoder;
 FlexyStepper stepper;
 HMC5883L_Simple compass;
 
@@ -42,7 +41,7 @@ void initializeModeSelect() {
 
 // Initialize encoder
 void initializeEncoder() {
-  encoder.attach(ENCODER_A_PIN, ENCODER_B_PIN);
+  Encoder.encoder(ENCODER_A_PIN, ENCODER_B_PIN);
   encoder.write(0);
 }
 
@@ -85,12 +84,12 @@ void loop() {
   } else if (!modeSelectPin1State && !modeSelectPin2State) {
     mode = MANUAL_MODE;
     digitalWrite(ENABLE_PIN, LOW); // Enable stepper during Manual mode
-    static float initialHeading = 0.0; // Declare initialHeading as a static variable
   }
 
   // Perform appropriate action based on mode
   switch (mode) {
     case HEADING_HOLD_MODE:
+  static float initialHeading = 0.0; // Declare initialHeading as a static variable
   static unsigned long lastCompassReadTime = 0; // Declare lastCompassReadTime as a static variable
   static int encoderCount = 0; // Declare encoderCount as a static variable
   
