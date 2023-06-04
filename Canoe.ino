@@ -7,7 +7,7 @@
 // Define constants
 const int ENCODER_A_PIN = 2;
 const int ENCODER_B_PIN = 4;
-const int DIRECTION_PIN = 6;
+const int DIR_PIN = 6;
 const int STEP_PIN = 3;
 const int ENABLE_PIN = 5;
 const int MODE_SELECT_PIN_1 = 7;
@@ -15,6 +15,13 @@ const int MODE_SELECT_PIN_2 = 8;
 const int HEADING_HOLD_MODE = 0;
 const int SET_MODE = 1;
 const int MANUAL_MODE = 2;
+int currentCount;
+float currentHeading;
+float targetHeading;
+float targetPosition;
+float headingError;
+int encoderCount = 0;
+unsigned long currentTime = millis();
 
 // Define variables
 int mode = HEADING_HOLD_MODE; // Default to heading hold mode
@@ -24,6 +31,7 @@ bool modeSelectPin2State = false;
 // Initialize objects
 FlexyStepper stepper;
 HMC5883L_Simple compass;
+Encoder encoder(ENCODER_A_PIN, ENCODER_B_PIN);
 
 // Interrupt service routine for mode select pins
 void handleModeSelect() {
@@ -41,7 +49,6 @@ void initializeModeSelect() {
 
 // Initialize encoder
 void initializeEncoder() {
-  Encoder.encoder(ENCODER_A_PIN, ENCODER_B_PIN);
   encoder.write(0);
 }
 
@@ -58,9 +65,8 @@ void initializeStepper() {
 }
 
 void initializeCompass() {
-  compass.begin();
-  compass.setDeclination(16.0, 0.0, 'W'); // Set declination for Campbell River, BC, Canada
-  compass.setScale(COMPASS_SCALE_810); // Set scale to COMPASS_SCALE_810
+  compass.SetDeclination(16.0, 0.0, 'W'); // Set declination for Campbell River, BC, Canada
+  compass.SetScale(COMPASS_SCALE_810); // Set scale to COMPASS_SCALE_810
 }
 
 void setup() {
@@ -91,25 +97,24 @@ void loop() {
     case HEADING_HOLD_MODE:
   static float initialHeading = 0.0; // Declare initialHeading as a static variable
   static unsigned long lastCompassReadTime = 0; // Declare lastCompassReadTime as a static variable
-  static int encoderCount = 0; // Declare encoderCount as a static variable
   
   // Store initial heading when mode is first entered
   if (initialHeading == 0.0) {
-    initialHeading = compass.getHeading();
+    initialHeading = compass.GetHeadingDegrees();
   }
 
   // Read current heading from compass every half second
-  unsigned long currentTime = millis();
+  currentTime = millis();
   if (currentTime - lastCompassReadTime >= 500) {
     lastCompassReadTime = currentTime;
-    currentHeading = compass.getHeading();
+    currentHeading = compass.GetHeadingDegrees();
   }
 
   // Calculate target heading based on initial heading
-  float targetHeading = initialHeading;
+  targetHeading = initialHeading;
 
   // Calculate error between current and target heading
-  float headingError = currentHeading - targetHeading;
+  headingError = currentHeading - targetHeading;
 
   // Adjust error to be within -180 to 180 range
   if (headingError > 180) {
@@ -119,7 +124,6 @@ void loop() {
   }
 
   // Set target position of stepper motor in rotations based on heading error and direction
-  float targetPosition;
 
   if (headingError > 0) {
     targetPosition = map(headingError, 0, 90, 0, 4);
@@ -130,43 +134,43 @@ void loop() {
   }
 
   // Set target position of stepper motor and move it
-  stepper.setTargetPositionInRotations(targetPosition);
+  stepper.setTargetPositionInRevolutions(targetPosition);
 
   if (!stepper.motionComplete()) { // If stepper motor is not complete its move
     stepper.processMovement(); // Command stepper to move to target
   }
   // Update encoder count based on current position of stepper motor
-    int currentCount = map(stepper.getCurrentPositionInRevolutions(), -8, 8, -2000, 2000);
+    currentCount = map(stepper.getCurrentPositionInRevolutions(), -8, 8, -2000, 2000);
     encoderCount = currentCount;
-    myEnc.write(encoderCount);
+    encoder.write(encoderCount);
   break;
 
 
 
     case SET_MODE:
       // Set encoder count to 0
-      myEnc.write(0);
+      encoder.write(0);
 
       // Set current position of stepper motor to 0
       stepper.setCurrentPositionInRevolutions(0);
       break;
 
-    case MANUAL_MODE:
+    case MANUAL_MODE: 
   // Read encoder count and map to target position of stepper motor
-  int encoderCount = myEnc.read();
     // Limit encoder count to range of -2000 to 2000 steps
+    encoderCount = encoder.read();
     if (encoderCount < -2000) {
     encoderCount = -2000;
-    myEnc.write(encoderCount);
+    encoder.write(encoderCount);
   } else if (encoderCount > 2000) {
     encoderCount = 2000;
-    myEnc.write(encoderCount);
+    encoder.write(encoderCount);
   }
   
-  float targetPosition = map(encoderCount, -2000, 2000, -8, 8);
+  targetPosition = map(encoderCount, -2000, 2000, -8, 8);
 
   // Set target position of stepper motor and move it
-  stepper.setTargetPositionInRotations(targetPosition);
+  stepper.setTargetPositionInRevolutions(targetPosition);
 
   if (!stepper.motionComplete()) { // If stepper motor is not complete its move
     stepper.processMovement(); // Command stepper to move to target
