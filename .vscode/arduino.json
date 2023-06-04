@@ -1,5 +1,6 @@
 {
     "configuration": "cpu=pro20MHz",
     "board": "JodaCustom:avr:Pro",
-    "sketch": "Boat_Steering_3.ino"
+    "sketch": "Boat_Steering_3.ino",
+    "port": "COM3"
 }
